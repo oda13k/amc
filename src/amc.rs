@@ -79,7 +79,7 @@ impl RandrOutputInfo {
         &self,
         xstack: &XCBStack,
         modes: &[randr::ModeInfo],
-    ) -> (randr::Mode, u16, u16) {
+    ) -> Result<(randr::Mode, u16, u16)> {
         // code "adapted" from the xrandr source
         let mut best_mode: Option<&randr::Mode> = None;
         let mut best_mode_info: Option<&randr::ModeInfo> = None;
@@ -117,11 +117,19 @@ impl RandrOutputInfo {
             }
         }
 
-        return (
+        if best_mode.is_none() {
+            return Err("Couldn't find a best mode.".into());
+        }
+
+        if best_mode_info.is_none() {
+            return Err("Couldn't find best mode info but found a best mode?.".into());
+        }
+
+        return Ok((
             *best_mode.unwrap(),
             best_mode_info.unwrap().width,
             best_mode_info.unwrap().height,
-        );
+        ));
     }
 }
 
@@ -155,7 +163,7 @@ impl Monitor {
         crtc_slot: Option<&randr::Crtc>,
         modes: &[randr::ModeInfo],
     ) -> Result<(Monitor, bool)> {
-        let (best_mode, width, height) = output.get_best_mode(xstack, modes);
+        let (best_mode, width, height) = output.get_best_mode(xstack, modes)?;
 
         if output.info.crtc().is_none() {
             if crtc_slot.is_none() {
