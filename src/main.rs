@@ -51,7 +51,6 @@ fn amc_apply_best_setup_for_mons(
     mons: &Vec<amc::Monitor>,
     mon_setups: &Vec<MonitorSetup>,
 ) -> amc::Result<()> {
-    let mut setup_hit = false;
     let mut configs_changed = false;
 
     let mut screen_w = 0;
@@ -66,6 +65,9 @@ fn amc_apply_best_setup_for_mons(
     let mut screen_w_mm = 0;
     let mut screen_h_mm = 0;
 
+    let mut monitors_hit_in_setup = 0;
+    let mut best_setup: Option<&MonitorSetup> = None;
+
     for setup in mon_setups {
         match setup
             .configs
@@ -78,8 +80,13 @@ fn amc_apply_best_setup_for_mons(
             None => continue,
         };
 
-        setup_hit = true;
+        if setup.configs.len() > monitors_hit_in_setup {
+            monitors_hit_in_setup = setup.configs.len();
+            best_setup = Some(setup);
+        }
+    }
 
+    if let Some(setup) = best_setup {
         for conf in &setup.configs {
             let mon = mons.iter().find(|mon| mon.id == conf.id).unwrap();
 
@@ -102,11 +109,7 @@ fn amc_apply_best_setup_for_mons(
             screen_w_mm += mon.w_mm;
             screen_h_mm += mon.h_mm;
         }
-
-        break;
-    }
-
-    if !setup_hit {
+    } else {
         /* If no setup matched what's connected, we mirror each display.
          * We could rig each display to a single crtc if they
          * are the same size, mode, etc but I can't be fucked to check all of that.
